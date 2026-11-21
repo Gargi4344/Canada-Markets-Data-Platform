@@ -1,0 +1,8 @@
+cmdp:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      # The pipeline sets CMDP_DBT_DB_PATH to data/warehouse/build.duckdb (absolute path).
+      path: "{{ env_var('CMDP_DBT_DB_PATH', '../../data/warehouse/build.duckdb') }}"
+      threads: 4

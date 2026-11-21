@@ -1,0 +1,255 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: Date dimension (one row per calendar day) with the Bank of Canada business-day flag.
+    columns:
+      - name: date_key
+        description: Surrogate key YYYYMMDD.
+        data_tests: [unique, not_null]
+      - name: date
+        description: Calendar date.
+        data_tests: [unique, not_null]
+      - name: is_business_day
+        description: True when the Bank of Canada publishes data.
+        data_tests: [not_null]
+      - name: is_weekend
+        description: Saturday or Sunday.
+      - name: holiday_name
+        description: Holiday name, null on ordinary days.
+      - name: day_of_week
+        description: 0 = Sunday ... 6 = Saturday.
+      - name: day_name
+        description: Day name.
+      - name: month
+        description: Month number 1-12.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+                quote: false
+      - name: month_name
+        description: Month name.
+      - name: quarter
+        description: Quarter 1-4.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4]
+                quote: false
+      - name: year
+        description: Calendar year.
+      - name: month_start
+        description: First day of the month.
+
+  - name: dim_series
+    description: Series dimension with catalog metadata and coverage statistics.
+    columns:
+      - name: series_key
+        description: Platform series key (primary key).
+        data_tests: [unique, not_null]
+      - name: source_id
+        description: Identifier at the source (Valet series name or StatCan vector id).
+        data_tests: [unique, not_null]
+      - name: source
+        description: Source system.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["boc_valet", "statcan_wds"]
+      - name: category
+        description: Series category.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["policy_rate", "money_market", "bond_yield", "fx", "cpi"]
+      - name: series_name
+        description: Human-readable name.
+      - name: unit
+        description: Standardised unit (percent, CAD per unit, index 2002=100).
+      - name: frequency
+        description: Observation frequency.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["daily", "monthly"]
+      - name: description
+        description: Description of the series.
+      - name: range_min
+        description: Lowest plausible value used by the range check.
+      - name: range_max
+        description: Highest plausible value used by the range check.
+      - name: freshness_max_business_days
+        description: Freshness threshold in business days.
+      - name: anomaly_check
+        description: Whether the 5-sigma anomaly check applies.
+      - name: first_date
+        description: First observation date in the warehouse.
+      - name: last_date
+        description: Latest observation date in the warehouse.
+      - name: observation_count
+        description: Number of observations in the warehouse.
+
+  - name: fct_observation
+    description: Fact table, one row per series per observation date (grain = series x date).
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: ["series_key", "date_key"]
+    columns:
+      - name: series_key
+        description: Foreign key to dim_series.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_series')
+                field: series_key
+      - name: date_key
+        description: Foreign key to dim_date.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_key
+      - name: obs_date
+        description: Observation date (denormalised for convenience).
+        data_tests: [not_null]
+      - name: value
+        description: Observation value in the standardised unit of the series.
+        data_tests: [not_null]
+      - name: load_id
+        description: Extract run that supplied the value (lineage back to bronze).
+        data_tests: [not_null]
+
+  - name: mart_yield_curve
+    description: >
+      Daily Government of Canada benchmark yields (2, 5, 10 year and long) with the 2s10s
+      spread in basis points and an inversion flag (10-year below 2-year).
+    columns:
+      - name: obs_date
+        description: Business day.
+        data_tests: [unique, not_null]
+      - name: date_key
+        description: Foreign key to dim_date.
+      - name: yield_2y
+        description: 2-year yield, percent.
+      - name: yield_5y
+        description: 5-year yield, percent.
+      - name: yield_10y
+        description: 10-year yield, percent.
+      - name: yield_long
+        description: Long-term (about 30-year) yield, percent.
+      - name: spread_2s10s_bps
+        description: (10-year minus 2-year) x 100, basis points.
+        data_tests: [not_null]
+      - name: is_inverted
+        description: True when the 10-year yield is below the 2-year yield.
+      - name: curve_shape
+        description: "`inverted` or `normal`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["inverted", "normal"]
+
+  - name: mart_fx_daily
+    description: >
+      Daily CAD exchange rates with daily return and 30-business-day rolling volatility
+      (annualised standard deviation of log returns, percent).
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: ["pair", "obs_date"]
+    columns:
+      - name: pair
+        description: Currency pair, for example USDCAD (CAD per unit of the first currency).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["USDCAD", "EURCAD", "GBPCAD", "JPYCAD", "CNYCAD"]
+      - name: series_key
+        description: Foreign key to dim_series.
+      - name: obs_date
+        description: Business day.
+        data_tests: [not_null]
+      - name: date_key
+        description: Foreign key to dim_date.
+      - name: rate
+        description: CAD per unit of foreign currency.
+        data_tests: [not_null]
+      - name: daily_return_pct
+        description: Simple daily return, percent. Null on the first day.
+      - name: log_return
+        description: Natural log of rate / previous rate.
+      - name: vol_30d_pct
+        description: 30-day rolling volatility, annualised, percent. Null until 30 returns exist.
+
+  - name: mart_policy_rate_events
+    description: >
+      Each change in the target for the overnight rate. `effective_date` is the first
+      business day on which the new target appears in the daily series.
+    columns:
+      - name: effective_date
+        description: First day at the new rate.
+        data_tests: [unique, not_null]
+      - name: date_key
+        description: Foreign key to dim_date.
+      - name: old_rate
+        description: Rate before the decision, percent.
+        data_tests: [not_null]
+      - name: new_rate
+        description: Rate after the decision, percent.
+        data_tests: [not_null]
+      - name: change_bps
+        description: Change in basis points (never zero).
+        data_tests: [not_null]
+      - name: direction
+        description: "`hike` or `cut`."
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["hike", "cut"]
+
+  - name: mart_cpi_monthly
+    description: Monthly CPI index levels with month-over-month and year-over-year inflation (percent).
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: ["series_key", "month"]
+    columns:
+      - name: series_key
+        description: CPI series key.
+        data_tests: [not_null]
+      - name: month
+        description: Reference month (first day).
+        data_tests: [not_null]
+      - name: index_value
+        description: CPI level, 2002 = 100.
+        data_tests: [not_null]
+      - name: mom_pct
+        description: Month-over-month change, percent.
+      - name: yoy_pct
+        description: Year-over-year change, percent. Null for the first 12 months.
+
+  - name: mart_real_policy_rate
+    description: >
+      Monthly real policy rate = average policy rate in the month minus CPI all-items
+      year-over-year inflation. A negative value means monetary policy is accommodative in
+      real terms.
+    columns:
+      - name: month
+        description: Reference month (first day).
+        data_tests: [unique, not_null]
+      - name: policy_rate_avg
+        description: Average daily target for the overnight rate in the month, percent.
+        data_tests: [not_null]
+      - name: policy_rate_eom
+        description: Target for the overnight rate on the last observed day of the month.
+      - name: cpi_yoy_pct
+        description: CPI all-items year-over-year inflation, percent.
+        data_tests: [not_null]
+      - name: real_policy_rate
+        description: policy_rate_avg minus cpi_yoy_pct, percentage points.
+        data_tests: [not_null]

@@ -1,0 +1,97 @@
+version: 2
+
+models:
+  - name: int_observations_flagged
+    description: >
+      Every bronze row from both sources with its cleaning decision. Rule 2: rows whose value
+      is empty or not numeric get `removal_reason = 'null_value'`. Rule 3: when a (series,
+      date) pair arrives more than once, the latest load is kept and older copies get
+      `removal_reason = 'duplicate'`. Row count equals the bronze row count.
+    columns:
+      - name: series_key
+        description: Platform series key.
+        data_tests: [not_null]
+      - name: obs_date
+        description: Observation date.
+        data_tests: [not_null]
+      - name: version_rank
+        description: 1 for the latest load of a (series, date, is-null) group.
+      - name: removal_reason
+        description: Null when kept, otherwise `null_value` or `duplicate`.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["null_value", "duplicate"]
+
+  - name: int_observations_clean
+    description: >
+      The silver table: typed, de-duplicated observations with standardised units (rule 4,
+      `value = value_num * unit_multiplier`) and a business-day flag from the calendar (rule 5).
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: ["series_key", "obs_date"]
+    columns:
+      - name: series_key
+        description: Platform series key.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_meta__series')
+                field: series_key
+      - name: source
+        description: Source system.
+      - name: obs_date
+        description: Observation date.
+        data_tests: [not_null]
+      - name: value
+        description: Value in the standardised unit.
+        data_tests: [not_null]
+      - name: unit
+        description: Standardised unit.
+      - name: frequency
+        description: daily or monthly.
+      - name: category
+        description: Series category.
+      - name: is_business_day
+        description: >
+          True when the date is a Bank of Canada business day. Daily series that publish on
+          a holiday (the policy rate is carried on holidays) are kept and flagged.
+      - name: load_id
+        description: Extract run that supplied the kept row.
+      - name: loaded_at
+        description: UTC time of that extract run.
+
+  - name: int_observation_removals
+    description: Rows removed between bronze and silver, with the documented reason.
+    columns:
+      - name: series_key
+        description: Platform series key.
+      - name: source
+        description: Source system.
+      - name: obs_date
+        description: Observation date.
+      - name: value_raw
+        description: Raw value of the removed row.
+      - name: load_id
+        description: Extract run of the removed row.
+      - name: loaded_at
+        description: UTC time of that run.
+      - name: removal_reason
+        description: "`null_value` or `duplicate`."
+        data_tests: [not_null]
+
+  - name: int_missing_periods
+    description: >
+      Expected periods without an observation between each series' first and last date:
+      every business day for daily series, every month for monthly series.
+    columns:
+      - name: series_key
+        description: Platform series key.
+      - name: category
+        description: Series category.
+      - name: frequency
+        description: daily or monthly.
+      - name: expected_date
+        description: The business day or month that has no observation.

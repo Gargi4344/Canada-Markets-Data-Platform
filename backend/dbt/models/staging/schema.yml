@@ -1,0 +1,134 @@
+version: 2
+
+models:
+  - name: stg_valet__observations
+    description: >
+      Bank of Canada Valet observations with typed columns. Rule 1 (typing): `obs_date` is
+      cast to DATE and `value_raw` is parsed into `value_num` with TRY_CAST, so a value that
+      is empty or not numeric becomes null instead of failing the load. No rows are removed.
+    columns:
+      - name: series_key
+        description: Platform series key from config/series.yaml.
+        data_tests: [not_null]
+      - name: source_id
+        description: Valet series name.
+      - name: source
+        description: Always `boc_valet`.
+      - name: obs_date
+        description: Observation date.
+        data_tests: [not_null]
+      - name: value_raw
+        description: Value exactly as the source returned it (text).
+      - name: value_num
+        description: Numeric value, null when `value_raw` is empty or not numeric.
+      - name: load_id
+        description: Extract run that wrote the row.
+        data_tests: [not_null]
+      - name: loaded_at
+        description: UTC time of the extract run.
+      - name: source_url
+        description: URL that was requested.
+
+  - name: stg_statcan__observations
+    description: >
+      Statistics Canada CPI data points (table 18-10-0004-01) with typed columns. Same typing
+      rule as the Valet staging model. Reference periods are the first day of each month.
+    columns:
+      - name: series_key
+        description: Platform series key (CPI_ALL, CPI_FOOD, CPI_SHELTER, CPI_ENERGY).
+        data_tests: [not_null]
+      - name: source_id
+        description: StatCan vector id.
+      - name: source
+        description: Always `statcan_wds`.
+      - name: obs_date
+        description: Reference month (first day of the month).
+        data_tests: [not_null]
+      - name: value_raw
+        description: Value exactly as the source returned it.
+      - name: value_num
+        description: Numeric index value.
+      - name: load_id
+        description: Extract run that wrote the row.
+        data_tests: [not_null]
+      - name: loaded_at
+        description: UTC time of the extract run.
+      - name: source_url
+        description: URL that was requested.
+
+  - name: stg_meta__series
+    description: The series catalog from config/series.yaml.
+    columns:
+      - name: series_key
+        description: Platform series key.
+        data_tests: [unique, not_null]
+      - name: source_id
+        description: Identifier at the source.
+      - name: source
+        description: Source system.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["boc_valet", "statcan_wds"]
+      - name: category
+        description: Series category.
+      - name: series_name
+        description: Human-readable name.
+      - name: unit
+        description: Standardised unit.
+      - name: unit_multiplier
+        description: Factor applied to the raw value to reach `unit`.
+      - name: frequency
+        description: daily or monthly.
+      - name: freshness_max_business_days
+        description: Freshness threshold in business days.
+      - name: anomaly_check
+        description: Whether the 5-sigma anomaly check applies.
+      - name: range_min
+        description: Lowest plausible value.
+      - name: range_max
+        description: Highest plausible value.
+      - name: description
+        description: Description of the series.
+
+  - name: stg_meta__calendar
+    description: >
+      Bank of Canada business-day calendar: weekdays that are not Ontario public holidays,
+      federal government holidays or the Civic Holiday.
+    columns:
+      - name: cal_date
+        description: Calendar date.
+        data_tests: [unique, not_null]
+      - name: is_weekend
+        description: Saturday or Sunday.
+      - name: holiday_name
+        description: Holiday name, null on ordinary days.
+      - name: is_business_day
+        description: True when the Bank of Canada publishes data.
+        data_tests: [not_null]
+
+  - name: stg_meta__load_log
+    description: One row per series per extract run (row count, date range, source URL).
+    columns:
+      - name: load_id
+        description: Extract run identifier.
+        data_tests: [not_null]
+      - name: source
+        description: Source system.
+      - name: series_key
+        description: Platform series key.
+        data_tests: [not_null]
+      - name: source_id
+        description: Identifier at the source.
+      - name: requested_start
+        description: First date requested (day or month after the last loaded date).
+      - name: row_count
+        description: Rows returned and written to bronze.
+      - name: min_obs_date
+        description: Earliest date in the load.
+      - name: max_obs_date
+        description: Latest date in the load.
+      - name: source_url
+        description: URL that was requested.
+      - name: loaded_at
+        description: UTC time of the load.

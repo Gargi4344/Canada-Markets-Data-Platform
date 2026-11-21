@@ -1,0 +1,45 @@
+name: cmdp
+version: "1.0.0"
+config-version: 2
+profile: cmdp
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Reference date for freshness checks. The pipeline passes today's date for real data
+  # and the last fixture date in fixture mode. Empty means "today".
+  as_of: ""
+  # Window and threshold of the day-over-day anomaly check.
+  anomaly_window: 250
+  anomaly_sigma: 5
+
+models:
+  cmdp:
+    +materialized: table
+    staging:
+      +schema: silver
+      +docs:
+        node_color: "#94A3B8"
+    silver:
+      +schema: silver
+      +docs:
+        node_color: "#64748B"
+    marts:
+      +schema: gold
+      +docs:
+        node_color: "#0EA5A4"
+    dq:
+      +schema: gold
+      +docs:
+        node_color: "#DC2626"
+
+data_tests:
+  cmdp:
+    +store_failures: false
+
+flags:
+  send_anonymous_usage_stats: false

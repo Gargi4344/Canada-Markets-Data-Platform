@@ -47,8 +47,11 @@ class Settings(BaseSettings):
 
     @property
     def gold_db(self) -> Path:
-        """Published DuckDB file that the API reads (read-only)."""
-        return self.warehouse_dir / "gold.duckdb"
+        """Published DuckDB file that the API reads (read-only).
+
+        It is not called gold.duckdb so its catalog name cannot clash with the gold schema.
+        """
+        return self.warehouse_dir / "markets.duckdb"
 
     @property
     def runs_dir(self) -> Path:
