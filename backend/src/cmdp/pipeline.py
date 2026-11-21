@@ -27,7 +27,7 @@ from cmdp.calendar import build_calendar
 from cmdp.config import Settings, get_settings
 from cmdp.dbt_runner import load_manifest, run_dbt
 from cmdp.dq.results import collect_dq_rows, summarise, write_dq_rows
-from cmdp.extract.bronze import new_load_id
+from cmdp.extract.bronze import LoadRecord, new_load_id
 from cmdp.extract.fixtures import fixture_as_of, fixture_transport
 from cmdp.extract.http import make_client
 from cmdp.extract.run import run_extract
@@ -157,42 +157,24 @@ def run_pipeline(
     if full_refresh:
         shutil.rmtree(settings.bronze_dir, ignore_errors=True)
         settings.build_db.unlink(missing_ok=True)
-    settings.bronze_dir.mkdir(parents=True, exist_ok=True)
 
     t = time.perf_counter()
-    write_meta(settings, catalog, as_of)
-    transport = fixture_transport(settings.fixtures_dir) if fixtures else None
-    with make_client(settings.http_timeout_seconds, transport=transport) as client:
-        records = run_extract(
-            client,
-            catalog,
-            settings.bronze_dir,
-            settings.valet_base_url,
-            settings.statcan_base_url,
-            run_id,
-            as_of,
-        )
+    records = step_extract(settings, catalog, as_of, run_id, fixtures)
     report.timings_s["extract"] = round(time.perf_counter() - t, 3)
     report.rows_extracted = sum(r.row_count for r in records)
     report.series_loaded = len(records)
     log.info("extract: %d new rows in %.1fs", report.rows_extracted, report.timings_s["extract"])
 
     t = time.perf_counter()
-    run = run_dbt(settings, ["run"], as_of.isoformat())
+    step_transform(settings, as_of)
     report.timings_s["dbt_run"] = round(time.perf_counter() - t, 3)
-    if not run.success:
-        report.status = "failed: dbt run"
-        raise RuntimeError("dbt run failed; see backend/dbt/logs/dbt.log")
 
     t = time.perf_counter()
-    test = run_dbt(settings, ["test"], as_of.isoformat())
+    report.dq, dq_ok = step_quality(settings, run_id, as_of)
     report.timings_s["dbt_test"] = round(time.perf_counter() - t, 3)
-    dq_rows = collect_dq_rows(test.run_results or {}, load_manifest(settings), run_id)
-    write_dq_rows(settings.build_db, dq_rows)
-    report.dq = summarise(dq_rows)
     log.info("data quality: %s", report.dq)
 
-    report.status = "success" if test.success else "success_with_dq_failures"
+    report.status = "success" if dq_ok else "success_with_dq_failures"
     report.finished_at = datetime.now(UTC).isoformat()
     report.duration_s = round(time.perf_counter() - t0, 3)
     record_run(settings, report)
@@ -206,6 +188,44 @@ def run_pipeline(
     )
     log.info("pipeline finished in %.1fs (%s)", report.duration_s, report.status)
     return report
+
+
+def step_extract(
+    settings: Settings, catalog: Catalog, as_of: date, run_id: str, fixtures: bool = False
+) -> list[LoadRecord]:
+    """Bronze step: write catalog and calendar metadata, then extract new rows."""
+    settings.bronze_dir.mkdir(parents=True, exist_ok=True)
+    write_meta(settings, catalog, as_of)
+    transport = fixture_transport(settings.fixtures_dir) if fixtures else None
+    with make_client(settings.http_timeout_seconds, transport=transport) as client:
+        return run_extract(
+            client,
+            catalog,
+            settings.bronze_dir,
+            settings.valet_base_url,
+            settings.statcan_base_url,
+            run_id,
+            as_of,
+        )
+
+
+def step_transform(settings: Settings, as_of: date) -> None:
+    """Silver and gold step: ``dbt run``. Raises when a model fails."""
+    if not run_dbt(settings, ["run"], as_of.isoformat()).success:
+        raise RuntimeError("dbt run failed; see backend/dbt/logs/dbt.log")
+
+
+def step_quality(settings: Settings, run_id: str, as_of: date) -> tuple[dict, bool]:
+    """Data quality step: ``dbt test`` and write every outcome to ``gold.dq_results``.
+
+    Returns the summary and whether every error-severity test passed.
+    """
+    test = run_dbt(settings, ["test"], as_of.isoformat())
+    dq_rows = collect_dq_rows(test.run_results or {}, load_manifest(settings), run_id)
+    if not dq_rows:
+        raise RuntimeError("dbt test produced no results; see backend/dbt/logs/dbt.log")
+    write_dq_rows(settings.build_db, dq_rows)
+    return summarise(dq_rows), test.success
 
 
 def generate_docs(settings: Settings | None = None) -> bool:
