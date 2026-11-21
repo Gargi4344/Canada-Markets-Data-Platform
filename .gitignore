@@ -1,0 +1,36 @@
+# data (downloaded at runtime, never committed)
+data/
+*.duckdb
+*.duckdb.wal
+*.parquet
+!backend/tests/fixtures/**
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# dbt
+backend/dbt/target/
+backend/dbt/dbt_packages/
+backend/dbt/logs/
+logs/
+
+# dagster
+.dagster_home/
+backend/.dagster_home/
+
+# node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+
+# env and OS
+.env
+.DS_Store
+Thumbs.db

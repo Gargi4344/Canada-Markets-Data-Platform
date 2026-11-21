@@ -1,0 +1,215 @@
+# Series catalog for the Canada Markets Data Platform.
+# Every Bank of Canada ID below was confirmed against
+#   https://www.bankofcanada.ca/valet/lists/series/json  (and /lists/groups/json)
+# and every Statistics Canada vector against the WDS getSeriesInfoFromVector endpoint
+# (table 18-10-0004-01, Consumer Price Index, monthly, not seasonally adjusted).
+#
+# Fields
+#   key            short stable key used across the warehouse and the API
+#   source_id      identifier at the source (Valet series name or StatCan vector id)
+#   source         boc_valet | statcan_wds
+#   category       policy_rate | money_market | bond_yield | fx | cpi
+#   unit           standardised unit stored in the warehouse
+#   unit_multiplier  multiply the raw value by this to reach `unit`
+#   frequency      daily (Canadian business days) | monthly
+#   freshness_max_business_days  freshness threshold used by the DQ check
+#   anomaly_check  include in the 5-sigma day-over-day anomaly check
+#   range          plausible value range for the range check
+
+start_date: "2015-01-01"
+
+series:
+  - key: POLICY_RATE
+    source_id: V39079
+    source: boc_valet
+    category: policy_rate
+    name: Target for the overnight rate
+    unit: percent
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: false   # a step series: every decision would be a "5-sigma" move
+    range: [-1.0, 20.0]
+    description: The Bank of Canada policy interest rate (business daily).
+
+  - key: CORRA
+    source_id: AVG.INTWO
+    source: boc_valet
+    category: money_market
+    name: Canadian Overnight Repo Rate Average (CORRA)
+    unit: percent
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [-1.0, 20.0]
+    description: Measure of the cost of overnight general collateral funding in Canadian dollars.
+
+  - key: GOC_2Y
+    source_id: BD.CDN.2YR.DQ.YLD
+    source: boc_valet
+    category: bond_yield
+    name: Government of Canada benchmark bond yield, 2-year
+    unit: percent
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [-1.0, 20.0]
+    description: Selected benchmark bond yield for the 2-year Government of Canada bond.
+
+  - key: GOC_5Y
+    source_id: BD.CDN.5YR.DQ.YLD
+    source: boc_valet
+    category: bond_yield
+    name: Government of Canada benchmark bond yield, 5-year
+    unit: percent
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [-1.0, 20.0]
+    description: Selected benchmark bond yield for the 5-year Government of Canada bond.
+
+  - key: GOC_10Y
+    source_id: BD.CDN.10YR.DQ.YLD
+    source: boc_valet
+    category: bond_yield
+    name: Government of Canada benchmark bond yield, 10-year
+    unit: percent
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [-1.0, 20.0]
+    description: Selected benchmark bond yield for the 10-year Government of Canada bond.
+
+  - key: GOC_LONG
+    source_id: BD.CDN.LONG.DQ.YLD
+    source: boc_valet
+    category: bond_yield
+    name: Government of Canada benchmark bond yield, long-term
+    unit: percent
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [-1.0, 20.0]
+    description: Selected benchmark bond yield for the long-term (30-year) Government of Canada bond.
+
+  - key: FX_USDCAD
+    source_id: FXUSDCAD
+    source: boc_valet
+    category: fx
+    name: USD/CAD daily exchange rate
+    unit: CAD per USD
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [0.000001, 1000.0]
+    description: Bank of Canada daily average exchange rate, Canadian dollars per US dollar. Available from 2017-01-03.
+
+  - key: FX_EURCAD
+    source_id: FXEURCAD
+    source: boc_valet
+    category: fx
+    name: EUR/CAD daily exchange rate
+    unit: CAD per EUR
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [0.000001, 1000.0]
+    description: Bank of Canada daily average exchange rate, Canadian dollars per euro. Available from 2017-01-03.
+
+  - key: FX_GBPCAD
+    source_id: FXGBPCAD
+    source: boc_valet
+    category: fx
+    name: GBP/CAD daily exchange rate
+    unit: CAD per GBP
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [0.000001, 1000.0]
+    description: Bank of Canada daily average exchange rate, Canadian dollars per pound sterling. Available from 2017-01-03.
+
+  - key: FX_JPYCAD
+    source_id: FXJPYCAD
+    source: boc_valet
+    category: fx
+    name: JPY/CAD daily exchange rate
+    unit: CAD per JPY
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [0.000001, 1000.0]
+    description: Bank of Canada daily average exchange rate, Canadian dollars per Japanese yen. Available from 2017-01-03.
+
+  - key: FX_CNYCAD
+    source_id: FXCNYCAD
+    source: boc_valet
+    category: fx
+    name: CNY/CAD daily exchange rate
+    unit: CAD per CNY
+    unit_multiplier: 1.0
+    frequency: daily
+    freshness_max_business_days: 5
+    anomaly_check: true
+    range: [0.000001, 1000.0]
+    description: Bank of Canada daily average exchange rate, Canadian dollars per Chinese renminbi. Available from 2017-01-03.
+
+  - key: CPI_ALL
+    source_id: "41690973"
+    source: statcan_wds
+    category: cpi
+    name: CPI, all-items (Canada)
+    unit: index (2002=100)
+    unit_multiplier: 1.0
+    frequency: monthly
+    freshness_max_business_days: 65   # CPI is released ~3 weeks after month end
+    anomaly_check: false
+    range: [0.0, 1000.0]
+    description: Consumer Price Index, all-items, Canada, not seasonally adjusted. Table 18-10-0004-01.
+
+  - key: CPI_FOOD
+    source_id: "41690974"
+    source: statcan_wds
+    category: cpi
+    name: CPI, food (Canada)
+    unit: index (2002=100)
+    unit_multiplier: 1.0
+    frequency: monthly
+    freshness_max_business_days: 65   # CPI is released ~3 weeks after month end
+    anomaly_check: false
+    range: [0.0, 1000.0]
+    description: Consumer Price Index, food, Canada, not seasonally adjusted. Table 18-10-0004-01.
+
+  - key: CPI_SHELTER
+    source_id: "41691050"
+    source: statcan_wds
+    category: cpi
+    name: CPI, shelter (Canada)
+    unit: index (2002=100)
+    unit_multiplier: 1.0
+    frequency: monthly
+    freshness_max_business_days: 65   # CPI is released ~3 weeks after month end
+    anomaly_check: false
+    range: [0.0, 1000.0]
+    description: Consumer Price Index, shelter, Canada, not seasonally adjusted. Table 18-10-0004-01.
+
+  - key: CPI_ENERGY
+    source_id: "41691239"
+    source: statcan_wds
+    category: cpi
+    name: CPI, energy (Canada)
+    unit: index (2002=100)
+    unit_multiplier: 1.0
+    frequency: monthly
+    freshness_max_business_days: 65   # CPI is released ~3 weeks after month end
+    anomaly_check: false
+    range: [0.0, 1000.0]
+    description: Consumer Price Index, energy, Canada, not seasonally adjusted. Table 18-10-0004-01.
