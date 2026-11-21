@@ -12,7 +12,8 @@
 #   unit           standardised unit stored in the warehouse
 #   unit_multiplier  multiply the raw value by this to reach `unit`
 #   frequency      daily (Canadian business days) | monthly
-#   freshness_max_business_days  freshness threshold used by the DQ check
+#   freshness_max_business_days  freshness threshold used by the DQ check (business days
+#                  since the observation date; for monthly series since the end of the month)
 #   anomaly_check  include in the 5-sigma day-over-day anomaly check
 #   range          plausible value range for the range check
 
@@ -170,7 +171,7 @@ series:
     unit: index (2002=100)
     unit_multiplier: 1.0
     frequency: monthly
-    freshness_max_business_days: 65   # CPI is released ~3 weeks after month end
+    freshness_max_business_days: 45   # counted from the end of the reference month; CPI is released ~3 weeks after it
     anomaly_check: false
     range: [0.0, 1000.0]
     description: Consumer Price Index, all-items, Canada, not seasonally adjusted. Table 18-10-0004-01.
@@ -183,7 +184,7 @@ series:
     unit: index (2002=100)
     unit_multiplier: 1.0
     frequency: monthly
-    freshness_max_business_days: 65   # CPI is released ~3 weeks after month end
+    freshness_max_business_days: 45   # counted from the end of the reference month; CPI is released ~3 weeks after it
     anomaly_check: false
     range: [0.0, 1000.0]
     description: Consumer Price Index, food, Canada, not seasonally adjusted. Table 18-10-0004-01.
@@ -196,7 +197,7 @@ series:
     unit: index (2002=100)
     unit_multiplier: 1.0
     frequency: monthly
-    freshness_max_business_days: 65   # CPI is released ~3 weeks after month end
+    freshness_max_business_days: 45   # counted from the end of the reference month; CPI is released ~3 weeks after it
     anomaly_check: false
     range: [0.0, 1000.0]
     description: Consumer Price Index, shelter, Canada, not seasonally adjusted. Table 18-10-0004-01.
@@ -209,7 +210,7 @@ series:
     unit: index (2002=100)
     unit_multiplier: 1.0
     frequency: monthly
-    freshness_max_business_days: 65   # CPI is released ~3 weeks after month end
+    freshness_max_business_days: 45   # counted from the end of the reference month; CPI is released ~3 weeks after it
     anomaly_check: false
     range: [0.0, 1000.0]
     description: Consumer Price Index, energy, Canada, not seasonally adjusted. Table 18-10-0004-01.

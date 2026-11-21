@@ -40,7 +40,7 @@ create schema if not exists gold;
 create table if not exists gold.pipeline_runs (
     run_id varchar, mode varchar, full_refresh boolean, as_of date,
     started_at timestamptz, finished_at timestamptz, duration_s double,
-    extract_s double, dbt_run_s double, dbt_test_s double, publish_s double,
+    extract_s double, dbt_run_s double, dbt_test_s double,
     rows_extracted bigint, series_loaded integer,
     dq_total integer, dq_pass integer, dq_warn integer, dq_fail integer, dq_error integer,
     status varchar
@@ -105,7 +105,7 @@ def record_run(settings: Settings, report: RunReport) -> None:
         con.execute(PIPELINE_RUNS_DDL)
         t, dq = report.timings_s, report.dq
         con.execute(
-            "insert into gold.pipeline_runs values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "insert into gold.pipeline_runs values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             [
                 report.run_id,
                 report.mode,
@@ -117,7 +117,6 @@ def record_run(settings: Settings, report: RunReport) -> None:
                 t.get("extract", 0.0),
                 t.get("dbt_run", 0.0),
                 t.get("dbt_test", 0.0),
-                t.get("publish", 0.0),
                 report.rows_extracted,
                 report.series_loaded,
                 dq.get("total", 0),

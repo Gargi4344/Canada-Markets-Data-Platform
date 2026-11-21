@@ -96,6 +96,8 @@ models:
       - unique_combination:
           arguments:
             columns: ["series_key", "date_key"]
+      - values_within_catalog_range:
+          name: dq_range__catalog_range
     columns:
       - name: series_key
         description: Foreign key to dim_series.
@@ -135,12 +137,28 @@ models:
         description: Foreign key to dim_date.
       - name: yield_2y
         description: 2-year yield, percent.
+        data_tests:
+          - value_between:
+              name: dq_range__yield_2y
+              arguments: {min_value: -1, max_value: 20}
       - name: yield_5y
         description: 5-year yield, percent.
+        data_tests:
+          - value_between:
+              name: dq_range__yield_5y
+              arguments: {min_value: -1, max_value: 20}
       - name: yield_10y
         description: 10-year yield, percent.
+        data_tests:
+          - value_between:
+              name: dq_range__yield_10y
+              arguments: {min_value: -1, max_value: 20}
       - name: yield_long
         description: Long-term (about 30-year) yield, percent.
+        data_tests:
+          - value_between:
+              name: dq_range__yield_long
+              arguments: {min_value: -1, max_value: 20}
       - name: spread_2s10s_bps
         description: (10-year minus 2-year) x 100, basis points.
         data_tests: [not_null]
@@ -178,7 +196,11 @@ models:
         description: Foreign key to dim_date.
       - name: rate
         description: CAD per unit of foreign currency.
-        data_tests: [not_null]
+        data_tests:
+          - not_null
+          - value_between:
+              name: dq_range__fx_rate_positive
+              arguments: {min_value: 0, exclusive_min: true}
       - name: daily_return_pct
         description: Simple daily return, percent. Null on the first day.
       - name: log_return

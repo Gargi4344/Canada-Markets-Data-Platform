@@ -1,0 +1,155 @@
+version: 2
+
+# Data quality controls. Severity policy:
+#   error -> structural problems that make the data wrong (range, reconciliation, integrity)
+#   warn  -> monitoring findings about the source (freshness, completeness, anomalies);
+#            they are reported in gold.dq_results and the dashboard but do not stop the build.
+
+models:
+  - name: dq_freshness
+    description: >
+      Freshness per series: business days between the latest observation (or, for monthly
+      series, the end of the reference month) and the as-of date. Status is green within the
+      threshold (5 business days for daily series), amber within twice the threshold and red
+      beyond.
+    data_tests:
+      - freshness_within_threshold:
+          name: dq_freshness__policy_rate
+          config: {severity: warn, where: "category = 'policy_rate'"}
+      - freshness_within_threshold:
+          name: dq_freshness__money_market
+          config: {severity: warn, where: "category = 'money_market'"}
+      - freshness_within_threshold:
+          name: dq_freshness__bond_yield
+          config: {severity: warn, where: "category = 'bond_yield'"}
+      - freshness_within_threshold:
+          name: dq_freshness__fx
+          config: {severity: warn, where: "category = 'fx'"}
+      - freshness_within_threshold:
+          name: dq_freshness__cpi
+          config: {severity: warn, where: "category = 'cpi'"}
+    columns:
+      - name: series_key
+        description: Platform series key.
+        data_tests: [unique, not_null]
+      - name: category
+        description: Series category.
+      - name: frequency
+        description: daily or monthly.
+      - name: threshold_business_days
+        description: Maximum allowed age in business days.
+      - name: latest_obs_date
+        description: Latest observation date.
+      - name: period_end
+        description: Date the age is measured from (month end for monthly series).
+      - name: as_of_date
+        description: Reference date of the check (today, or the last fixture date offline).
+      - name: business_days_since
+        description: Business days after period_end up to and including as_of_date.
+      - name: is_fresh
+        description: business_days_since <= threshold_business_days.
+      - name: status
+        description: green, amber or red.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["green", "amber", "red"]
+
+  - name: dq_completeness
+    description: >
+      Completeness per series: expected periods (Bank of Canada business days or months)
+      between the first and last observation, missing periods and the completeness percent.
+    columns:
+      - name: series_key
+        description: Platform series key.
+        data_tests: [unique, not_null]
+      - name: category
+        description: Series category.
+      - name: frequency
+        description: daily or monthly.
+      - name: first_date
+        description: First observation.
+      - name: last_date
+        description: Latest observation.
+      - name: expected_periods
+        description: Business days (daily) or months (monthly) between first and last date.
+      - name: missing_periods
+        description: Expected periods without an observation.
+      - name: completeness_pct
+        description: 100 x (expected - missing) / expected.
+        data_tests:
+          - value_between:
+              name: dq_range__completeness_pct
+              arguments: {min_value: 0, max_value: 100}
+
+  - name: dq_anomalies
+    description: >
+      Observations whose day-over-day change exceeds 5 standard deviations of the previous
+      250 daily changes (series with anomaly_check = true). These are flags for review,
+      not errors: a policy decision or a market shock can legitimately cause one.
+    data_tests:
+      - no_anomalies:
+          name: dq_anomaly__money_market
+          config: {severity: warn, where: "category = 'money_market'"}
+      - no_anomalies:
+          name: dq_anomaly__bond_yield
+          config: {severity: warn, where: "category = 'bond_yield'"}
+      - no_anomalies:
+          name: dq_anomaly__fx
+          config: {severity: warn, where: "category = 'fx'"}
+    columns:
+      - name: series_key
+        description: Platform series key.
+      - name: category
+        description: Series category.
+      - name: obs_date
+        description: Date of the flagged move.
+      - name: value
+        description: Value on that date.
+      - name: change
+        description: Day-over-day change.
+      - name: sd_window
+        description: Standard deviation of the previous 250 daily changes.
+      - name: z_score
+        description: change / sd_window.
+      - name: sigma_threshold
+        description: Threshold in standard deviations (5).
+      - name: window_size
+        description: Number of previous changes used (250).
+
+  - name: dq_reconciliation
+    description: >
+      Row counts per series across layers. Load log rows must equal bronze rows; bronze rows
+      must equal silver rows plus documented removals (null values, duplicates); silver rows
+      must equal fact rows.
+    columns:
+      - name: series_key
+        description: Platform series key.
+        data_tests: [unique, not_null]
+      - name: load_log_rows
+        description: Rows recorded in the bronze load log.
+      - name: bronze_rows
+        description: Rows in the bronze Parquet files.
+      - name: silver_rows
+        description: Rows in the silver table.
+      - name: removed_null_value
+        description: Rows removed because the value was empty or not numeric.
+      - name: removed_duplicate
+        description: Rows removed because a newer load had the same series and date.
+      - name: fact_rows
+        description: Rows in fct_observation.
+      - name: diff_load_log_vs_bronze
+        description: load_log_rows - bronze_rows (must be 0).
+        data_tests:
+          - reconciles:
+              name: dq_reconciliation__load_log_vs_bronze
+      - name: diff_bronze_vs_silver
+        description: bronze_rows - silver_rows - removals (must be 0).
+        data_tests:
+          - reconciles:
+              name: dq_reconciliation__bronze_vs_silver
+      - name: diff_silver_vs_fact
+        description: silver_rows - fact_rows (must be 0).
+        data_tests:
+          - reconciles:
+              name: dq_reconciliation__silver_vs_fact

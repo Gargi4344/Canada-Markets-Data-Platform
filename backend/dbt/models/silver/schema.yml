@@ -86,6 +86,22 @@ models:
     description: >
       Expected periods without an observation between each series' first and last date:
       every business day for daily series, every month for monthly series.
+    data_tests:
+      - no_missing_periods:
+          name: dq_completeness__policy_rate
+          config: {severity: warn, where: "category = 'policy_rate'"}
+      - no_missing_periods:
+          name: dq_completeness__money_market
+          config: {severity: warn, where: "category = 'money_market'"}
+      - no_missing_periods:
+          name: dq_completeness__bond_yield
+          config: {severity: warn, where: "category = 'bond_yield'"}
+      - no_missing_periods:
+          name: dq_completeness__fx
+          config: {severity: warn, where: "category = 'fx'"}
+      - no_missing_periods:
+          name: dq_completeness__cpi
+          config: {severity: warn, where: "category = 'cpi'"}
     columns:
       - name: series_key
         description: Platform series key.
