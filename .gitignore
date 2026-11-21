@@ -34,3 +34,4 @@ frontend/next-env.d.ts
 .env
 .DS_Store
 Thumbs.db
+.pytest_tmp/

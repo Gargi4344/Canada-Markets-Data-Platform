@@ -55,7 +55,7 @@ ignore = ["D203", "D213", "D107", "D105"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --basetemp=.pytest_tmp"
 markers = ["slow: runs dbt end to end on fixtures"]
 
 [tool.dagster]
