@@ -1,0 +1,9 @@
+.venv
+.pytest_tmp
+.pytest_cache
+.ruff_cache
+.dagster_home
+dbt/target
+dbt/logs
+dbt/.user.yml
+**/__pycache__
