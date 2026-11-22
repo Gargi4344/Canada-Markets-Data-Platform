@@ -1,0 +1,35 @@
+"""FastAPI application. Run with ``make api`` and open http://localhost:8000/docs."""
+
+from __future__ import annotations
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from cmdp import __version__
+from cmdp.api.routes import router
+from cmdp.config import get_settings
+
+
+def create_app() -> FastAPI:
+    """Build the FastAPI app with CORS for the dashboard."""
+    app = FastAPI(
+        title="Canada Markets Data Platform API",
+        version=__version__,
+        description=(
+            "Bank of Canada and Statistics Canada market data, modelled as a star schema with "
+            "visible data quality checks. Read-only. Sources: Bank of Canada Valet API and "
+            "Statistics Canada (Open Government Licence - Canada)."
+        ),
+    )
+    origins = [o.strip() for o in get_settings().cors_origins.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_methods=["GET"],
+        allow_headers=["*"],
+    )
+    app.include_router(router)
+    return app
+
+
+app = create_app()
