@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * "Central bank" design tokens.
+ * Off-white #F8FAFC background, deep navy #0B1F3A primary, teal #0EA5A4 accent,
+ * red #DC2626 for alerts. Chart series colours were validated for colour-vision
+ * deficiency and contrast against the card surface in both themes (dataviz validator).
+ */
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 215 68% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 68% 14%;
+    --primary: 215 68% 14%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 68% 14%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 40%;
+    --accent: 179 84% 35%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 32 95% 44%;
+    --success: 142 72% 29%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 179 84% 35%;
+    --radius: 1rem;
+
+    --series-1: #0d9488;
+    --series-2: #eb6834;
+    --series-3: #2a78d6;
+    --chart-grid: #e2e8f0;
+    --chart-axis: #64748b;
+    --chart-band: rgba(100, 116, 139, 0.12);
+    --chart-alert: rgba(220, 38, 38, 0.1);
+  }
+
+  .dark {
+    --background: 222 49% 8%;
+    --foreground: 210 40% 96%;
+    --card: 215 50% 12%;
+    --card-foreground: 210 40% 96%;
+    --primary: 210 40% 96%;
+    --primary-foreground: 215 68% 14%;
+    --secondary: 216 37% 17%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 216 37% 17%;
+    --muted-foreground: 215 20% 70%;
+    --accent: 179 84% 35%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 38 92% 55%;
+    --success: 142 60% 45%;
+    --border: 216 30% 20%;
+    --input: 216 30% 20%;
+    --ring: 179 84% 40%;
+
+    --series-1: #0ea5a4;
+    --series-2: #d95926;
+    --series-3: #5a8dee;
+    --chart-grid: #1e2d44;
+    --chart-axis: #94a3b8;
+    --chart-band: rgba(148, 163, 184, 0.14);
+    --chart-alert: rgba(239, 68, 68, 0.16);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "tnum" 1;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -61,7 +61,7 @@ results: ## Measure everything and regenerate RESULTS.md and the README results/
 	$(RUN) python ../scripts/make_results.py
 
 screenshots: ## Capture README screenshots (needs `make api` and `make web` running)
-	cd $(FRONTEND) && node ../scripts/capture_screenshots.mjs
+	cd $(FRONTEND) && node scripts/capture-screenshots.mjs
 
 frontend-check: ## Lint and build the frontend
 	cd $(FRONTEND) && npm run lint && npm run build
