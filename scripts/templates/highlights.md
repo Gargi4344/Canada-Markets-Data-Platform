@@ -1,0 +1,3 @@
+- Built an automated medallion data pipeline (Python, dbt, DuckDB, Dagster) ingesting {series_count} Bank of Canada and Statistics Canada market series ({row_count} rows, bond yields, FX, policy rate, CPI) into a star-schema data model.
+- Enforced {dq_test_count} data quality controls (freshness, completeness, range, anomaly and reconciliation checks) with a {dq_pass_rate}% pass rate, surfaced in a data quality dashboard.
+- Delivered a FastAPI service and Next.js dashboard (yield curve, FX volatility, real policy rate) with CI/CD in GitHub Actions and documented data lineage and data dictionary.

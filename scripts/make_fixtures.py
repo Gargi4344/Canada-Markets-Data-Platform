@@ -12,7 +12,6 @@ runtime and never committed.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from cmdp.config import get_settings
 from cmdp.extract.http import get_json, make_client
