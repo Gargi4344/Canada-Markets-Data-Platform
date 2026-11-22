@@ -7,6 +7,7 @@ on:
 
 jobs:
   backend:
+    name: Backend (ruff, pipeline on fixtures, pytest)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,5 +23,25 @@ jobs:
         run: uv run ruff check .
       - name: Ruff format check
         run: uv run ruff format --check .
+      - name: Pipeline on fixtures (extract -> dbt run -> dbt test -> publish)
+        run: uv run python -m cmdp.pipeline run --fixtures --full-refresh
       - name: Pytest
         run: uv run pytest
+
+  frontend:
+    name: Frontend (next lint, typecheck, next build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run typecheck
